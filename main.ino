@@ -6,8 +6,9 @@ RCSwitch mySwitch = RCSwitch();
 
 int BTN_READ = 9;
 int BTN_PLAY = 7;
-int CODIGO = -1;
+long CODIGO = -1;
 int ESTADO_ACTUAL = 1;
+int bytesCodigo = 0;
 
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiAvrI2c.h"
@@ -22,8 +23,7 @@ void setup() {
   pinMode(BTN_READ, INPUT_PULLUP);
  
   Serial.begin(9600);
-  mySwitch.enableReceive(0); 
-
+ 
   
   #if RST_PIN >= 0
     oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
@@ -48,6 +48,8 @@ void loop() {
     if (digitalRead(BTN_READ)==LOW){
 
       Serial.println("HAS PULSADO EL BOTON DE ESCUCHAR");
+
+      mySwitch.enableReceive(0); 
       
       oled.clear();     
       oled.println("Escuchando...");
@@ -67,15 +69,18 @@ void loop() {
       
       if (mySwitch.available()) {
             CODIGO = mySwitch.getReceivedValue();
+            bytesCodigo = mySwitch.getReceivedBitlength();
             
             Serial.print("SE HA LEIDO EL CODIGO: ");
             Serial.println(CODIGO);
+            Serial.println(bytesCodigo);
+
+            delay(2000);
 
             oled.clear(); 
             oled.println("Leido:");
             oled.println(CODIGO);
             
-            mySwitch.resetAvailable();
             ESTADO_ACTUAL = 3;
             break;       
       }
@@ -88,9 +93,31 @@ void loop() {
       Serial.println("ESTOY A LA ESPERA DE EMITIR O VOLVER A ESCUCHAR");
     
       if (digitalRead(BTN_PLAY)==LOW){
+          
+          delay(200);
+          
+          mySwitch.enableTransmit(10);
 
-          Serial.println("EMITO");
-          emitir(CODIGO);
+          Serial.println("EMITO EL CODIGO:");
+          Serial.println(CODIGO);
+          Serial.println(bytesCodigo);
+
+          delay(500);
+          
+          oled.clear(); 
+          oled.println(CODIGO);
+          oled.println("Emitido");
+          delay(500);
+
+          mySwitch.send(CODIGO, bytesCodigo);
+          
+          delay(3000);
+          
+          oled.clear(); 
+          oled.println("Codigo:");
+          oled.println(CODIGO);
+          
+          delay(500);
       }
 
       if (digitalRead(BTN_READ)==LOW){
@@ -105,16 +132,4 @@ void loop() {
   }
 
   
-}
-
-
-
-void emitir(int codigo){
-  oled.clear(); 
-  oled.println(codigo);
-  oled.println("Emitido");
-  delay(2000);
-  oled.clear(); 
-  oled.println("Codigo:");
-  oled.println(codigo);
 }
